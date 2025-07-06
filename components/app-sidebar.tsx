@@ -43,7 +43,7 @@ const publicNavigation = [
     items: [
       { title: "Sign In", url: "/auth/login", icon: LogIn },
       { title: "Create Account", url: "/auth/register", icon: UserPlus },
-      { title: "Guest Cart", url: "/cart", icon: ShoppingCart },
+      { title: "Cart", url: "/cart", icon: ShoppingCart },
       { title: "Wishlist", url: "/wishlist", icon: Heart },
     ],
   },
@@ -68,8 +68,8 @@ export function AppSidebar() {
                   <Sparkles className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Artisan Commerce</span>
-                  <span className="truncate text-xs">Premium Shopping</span>
+                  <span className="truncate font-semibold">Carefree Store</span>
+                  <span className="truncate text-xs">Your Shopping Destination</span>
                 </div>
               </Link>
             </SidebarMenuButton>

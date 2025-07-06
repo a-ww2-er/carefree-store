@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator"
 import { CreditCard, Truck, MapPin, Lock, ArrowLeft } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { PAYMENT_METHOD_IMAGES } from "@/lib/constants/images"
 
 const orderItems = [
   {
@@ -59,7 +60,7 @@ export default function CheckoutPage() {
   return (
     <SidebarInset>
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
+   
         <div className="flex flex-1 items-center gap-4">
           <Button variant="ghost" size="sm" asChild>
             <Link href="/cart">
@@ -212,8 +213,8 @@ export default function CheckoutPage() {
                           Credit/Debit Card
                         </Label>
                         <div className="flex gap-2">
-                          <Image src="/placeholder.svg?height=24&width=38" alt="Visa" width={38} height={24} />
-                          <Image src="/placeholder.svg?height=24&width=38" alt="Mastercard" width={38} height={24} />
+                          <Image src={PAYMENT_METHOD_IMAGES.visa} alt="Visa" width={38} height={24} />
+                          <Image src={PAYMENT_METHOD_IMAGES.mastercard} alt="Mastercard" width={38} height={24} />
                         </div>
                       </div>
                       <div className="flex items-center space-x-2 p-4 border rounded-lg">
@@ -221,7 +222,9 @@ export default function CheckoutPage() {
                         <Label htmlFor="paypal" className="flex-1">
                           PayPal
                         </Label>
-                        <Image src="/placeholder.svg?height=24&width=60" alt="PayPal" width={60} height={24} />
+                        <div className="mt-2">
+                          <Image src={PAYMENT_METHOD_IMAGES.paypal} alt="PayPal" width={60} height={24} />
+                        </div>
                       </div>
                     </RadioGroup>
 

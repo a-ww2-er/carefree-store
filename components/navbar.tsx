@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { AVATAR_IMAGES } from "@/lib/constants/images"
 
 interface NavbarProps {
   isLoggedIn?: boolean
@@ -40,7 +41,7 @@ export function Navbar({ isLoggedIn = false, cartItemCount = 0 }: NavbarProps) {
       <div className="flex flex-1 items-center gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search for artisan products..." className="pl-10" />
+          <Input placeholder="Search for products..." className="pl-10" />
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -84,7 +85,7 @@ export function Navbar({ isLoggedIn = false, cartItemCount = 0 }: NavbarProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Avatar className="h-8 w-8 cursor-pointer">
-                  <AvatarImage src="/placeholder.svg?height=32&width=32" alt="User" />
+                  <AvatarImage src={AVATAR_IMAGES.default} alt="User" />
                   <AvatarFallback>JD</AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>

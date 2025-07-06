@@ -11,9 +11,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Artisan Commerce",
-  description: "A beautiful e-commerce experience",
-    generator: 'v0.dev'
+  title: "Carefree Store",
+  description: "Your one-stop shop for all your needs",
 }
 
 export default function RootLayout({

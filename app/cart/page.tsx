@@ -94,7 +94,7 @@ export default function CartPage() {
   return (
     <SidebarInset>
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
+     
         <div className="flex flex-1 items-center justify-between">
           <h1 className="text-xl font-semibold">Shopping Cart</h1>
           <Badge variant="secondary">{cartItems.reduce((sum, item) => sum + item.quantity, 0)} items</Badge>
@@ -276,7 +276,7 @@ export default function CartPage() {
                   </div>
 
                   <Button className="w-full" size="lg" asChild>
-                    <Link href="/checkout">
+                    <Link href="/auth/login">
                       Proceed to Checkout
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>

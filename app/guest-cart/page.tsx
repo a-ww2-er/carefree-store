@@ -69,7 +69,7 @@ export default function GuestCartPage() {
   return (
     <SidebarInset>
       <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-        <SidebarTrigger className="-ml-1" />
+        
         <div className="flex flex-1 items-center justify-between">
           <h1 className="text-xl font-semibold">Guest Cart</h1>
           <Badge variant="secondary">{cartItems.reduce((sum, item) => sum + item.quantity, 0)} items</Badge>

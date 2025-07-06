@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { ShoppingCart, Heart, Star, TrendingUp, Zap, Shield, UserPlus } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { PRODUCT_IMAGES, CATEGORY_IMAGES, HERO_IMAGE } from "@/lib/constants/images"
 
 const featuredProducts = [
   {
@@ -13,7 +14,7 @@ const featuredProducts = [
     name: "Artisan Ceramic Vase",
     price: 89.99,
     originalPrice: 120.0,
-    image: "/placeholder.svg?height=300&width=300",
+    image: PRODUCT_IMAGES.ceramicVase,
     rating: 4.8,
     reviews: 124,
     badge: "Trending",
@@ -22,7 +23,7 @@ const featuredProducts = [
     id: 2,
     name: "Handwoven Silk Scarf",
     price: 156.0,
-    image: "/placeholder.svg?height=300&width=300",
+    image: PRODUCT_IMAGES.silkScarf,
     rating: 4.9,
     reviews: 89,
     badge: "New",
@@ -32,7 +33,7 @@ const featuredProducts = [
     name: "Vintage Leather Journal",
     price: 45.99,
     originalPrice: 65.0,
-    image: "/placeholder.svg?height=300&width=300",
+    image: PRODUCT_IMAGES.leatherJournal,
     rating: 4.7,
     reviews: 203,
     badge: "Sale",
@@ -41,7 +42,7 @@ const featuredProducts = [
     id: 4,
     name: "Crystal Pendant Necklace",
     price: 234.0,
-    image: "/placeholder.svg?height=300&width=300",
+    image: PRODUCT_IMAGES.crystalNecklace,
     rating: 5.0,
     reviews: 67,
     badge: "Premium",
@@ -49,10 +50,10 @@ const featuredProducts = [
 ]
 
 const categories = [
-  { name: "Jewelry", count: 234, image: "/placeholder.svg?height=200&width=200" },
-  { name: "Home Decor", count: 156, image: "/placeholder.svg?height=200&width=200" },
-  { name: "Fashion", count: 189, image: "/placeholder.svg?height=200&width=200" },
-  { name: "Art", count: 98, image: "/placeholder.svg?height=200&width=200" },
+  { name: "Jewelry", count: 234, image: CATEGORY_IMAGES.jewelry },
+  { name: "Home Decor", count: 156, image: CATEGORY_IMAGES.homeDecor },
+  { name: "Fashion", count: 189, image: CATEGORY_IMAGES.fashion },
+  { name: "Art", count: 98, image: CATEGORY_IMAGES.art },
 ]
 
 export default function GuestHomePage() {
@@ -67,12 +68,11 @@ export default function GuestHomePage() {
               New Collection
             </Badge>
             <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-6xl">
-              Discover Artisan
-              <span className="block text-primary">Masterpieces</span>
+              Welcome to
+              <span className="block text-primary">Carefree Store</span>
             </h1>
             <p className="mb-6 text-lg text-muted-foreground">
-              Curated collection of handcrafted items from talented artisans around the world. Each piece tells a unique
-              story.
+              Your one-stop destination for all your shopping needs. Quality products, great prices, and excellent service.
             </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <Button size="lg" className="text-base" asChild>
@@ -85,7 +85,7 @@ export default function GuestHomePage() {
           </div>
           <div className="absolute right-0 top-0 h-full w-1/2 opacity-20">
             <Image
-              src="/placeholder.svg?height=400&width=400"
+              src={HERO_IMAGE}
               alt="Hero"
               width={400}
               height={400}
@@ -99,7 +99,7 @@ export default function GuestHomePage() {
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div className="space-y-2">
-                <h3 className="text-xl font-semibold">Join Artisan Commerce Today</h3>
+                <h3 className="text-xl font-semibold">Join Carefree Store Today</h3>
                 <p className="text-muted-foreground">
                   Create an account to save favorites, track orders, and get exclusive member benefits
                 </p>

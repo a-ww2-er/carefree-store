@@ -100,7 +100,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {/* <div className="grid grid-cols-2 gap-3">
               <Button variant="outline" size="lg">
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                   <path
@@ -128,7 +128,7 @@ export default function LoginPage() {
                 </svg>
                 Twitter
               </Button>
-            </div>
+            </div> */}
 
             <div className="text-center text-sm">
               {"Don't have an account? "}
