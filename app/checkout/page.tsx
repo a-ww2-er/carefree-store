@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,47 +14,133 @@ import { CreditCard, Truck, MapPin, Lock, ArrowLeft } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { PAYMENT_METHOD_IMAGES } from "@/lib/constants/images"
-
-const orderItems = [
-  {
-    id: 1,
-    name: "Artisan Ceramic Vase",
-    price: 89.99,
-    quantity: 1,
-    image: "/placeholder.svg?height=80&width=80",
-  },
-  {
-    id: 2,
-    name: "Handwoven Silk Scarf",
-    price: 156.0,
-    quantity: 2,
-    image: "/placeholder.svg?height=80&width=80",
-  },
-]
+import { useCartStore } from '@/store/cart';
+import { saveOrder } from "./actions"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
+import { useSession } from "next-auth/react"
 
 export default function CheckoutPage() {
+  const cartItems = useCartStore((state) => state.cartItems);
+  const clearCart = useCartStore((state) => state.clearCart);
+  const router = useRouter()
+  const { data: session } = useSession()
   const [step, setStep] = useState(1)
+  const [errors, setErrors] = useState<{[key: string]: string}>({})
   const [shippingInfo, setShippingInfo] = useState({
     firstName: "",
     lastName: "",
-    email: "",
+    email: session?.user?.email || "",
     phone: "",
     address: "",
     city: "",
     state: "",
     zipCode: "",
-    country: "US",
+    country: "Nigeria",
   })
   const [paymentMethod, setPaymentMethod] = useState("card")
   const [sameAsShipping, setSameAsShipping] = useState(true)
 
-  const subtotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const shipping = 9.99
   const tax = subtotal * 0.08
   const total = subtotal + shipping + tax
 
+  // Nigerian states
+  const nigerianStates = [
+    "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", 
+    "Cross River", "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "Federal Capital Territory", 
+    "Gombe", "Imo", "Jigawa", "Kaduna", "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", 
+    "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo", "Osun", "Oyo", "Plateau", "Rivers", 
+    "Sokoto", "Taraba", "Yobe", "Zamfara"
+  ]
+
+  // Populate user data when session loads
+  useEffect(() => {
+    if (session?.user) {
+      setShippingInfo(prev => ({
+        ...prev,
+        email: session.user.email || "",
+        firstName: session.user.name?.split(' ')[0] || "",
+        lastName: session.user.name?.split(' ').slice(1).join(' ') || "",
+      }))
+    }
+  }, [session])
+
+  const validateStep1 = () => {
+    const newErrors: {[key: string]: string} = {}
+    
+    if (!shippingInfo.firstName.trim()) newErrors.firstName = "First name is required"
+    if (!shippingInfo.lastName.trim()) newErrors.lastName = "Last name is required"
+    if (!shippingInfo.email.trim()) newErrors.email = "Email is required"
+    if (!shippingInfo.phone.trim()) newErrors.phone = "Phone is required"
+    if (!shippingInfo.address.trim()) newErrors.address = "Address is required"
+    if (!shippingInfo.city.trim()) newErrors.city = "City is required"
+    if (!shippingInfo.state.trim()) newErrors.state = "State is required"
+    if (!shippingInfo.zipCode.trim()) newErrors.zipCode = "ZIP code is required"
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleNextStep = () => {
+    if (step === 1 && !validateStep1()) {
+      return
+    }
+    setStep(step + 1)
+  }
+
   const handleInputChange = (field: string, value: string) => {
     setShippingInfo((prev) => ({ ...prev, [field]: value }))
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: "" }))
+    }
+  }
+
+  const handlePlaceOrder = async () => {
+    if (cartItems.length === 0) {
+      toast.error("Your cart is empty")
+      return
+    }
+
+    if (!shippingInfo.firstName || !shippingInfo.lastName || !shippingInfo.email || !shippingInfo.address) {
+      toast.error("Please fill in all required shipping information")
+      return
+    }
+
+    const orderNumber = `ORD-${Date.now()}`
+    const estimatedDelivery = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+    const orderData = {
+      orderNumber,
+      items: cartItems.map(item => ({
+        asin: item.asin,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        image: item.image
+      })),
+      subtotal,
+      shipping,
+      tax,
+      total,
+      shippingInfo,
+      paymentMethod,
+      status: "processing" as const,
+      orderDate: new Date().toISOString().split('T')[0],
+      estimatedDelivery
+    }
+
+    const result = await saveOrder(orderData)
+    
+    if (result.success) {
+      clearCart()
+      toast.success("Order placed successfully!")
+      router.push(`/order-success?orderNumber=${orderNumber}`)
+    } else {
+      toast.error(result.error || "Failed to place order")
+    }
   }
 
   return (
@@ -109,86 +195,100 @@ export default function CheckoutPage() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="firstName">First Name</Label>
+                      <Label htmlFor="firstName">First Name *</Label>
                       <Input
                         id="firstName"
                         value={shippingInfo.firstName}
                         onChange={(e) => handleInputChange("firstName", e.target.value)}
+                        className={errors.firstName ? "border-red-500" : ""}
                       />
+                      {errors.firstName && <p className="text-sm text-red-500">{errors.firstName}</p>}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="lastName">Last Name</Label>
+                      <Label htmlFor="lastName">Last Name *</Label>
                       <Input
                         id="lastName"
                         value={shippingInfo.lastName}
                         onChange={(e) => handleInputChange("lastName", e.target.value)}
+                        className={errors.lastName ? "border-red-500" : ""}
                       />
+                      {errors.lastName && <p className="text-sm text-red-500">{errors.lastName}</p>}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
+                      <Label htmlFor="email">Email *</Label>
                       <Input
                         id="email"
                         type="email"
                         value={shippingInfo.email}
                         onChange={(e) => handleInputChange("email", e.target.value)}
+                        className={errors.email ? "border-red-500" : ""}
                       />
+                      {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone</Label>
+                      <Label htmlFor="phone">Phone *</Label>
                       <Input
                         id="phone"
                         value={shippingInfo.phone}
                         onChange={(e) => handleInputChange("phone", e.target.value)}
+                        className={errors.phone ? "border-red-500" : ""}
                       />
+                      {errors.phone && <p className="text-sm text-red-500">{errors.phone}</p>}
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
+                    <Label htmlFor="address">Address *</Label>
                     <Input
                       id="address"
                       value={shippingInfo.address}
                       onChange={(e) => handleInputChange("address", e.target.value)}
+                      className={errors.address ? "border-red-500" : ""}
                     />
+                    {errors.address && <p className="text-sm text-red-500">{errors.address}</p>}
                   </div>
 
                   <div className="grid grid-cols-3 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="city">City</Label>
+                      <Label htmlFor="city">City *</Label>
                       <Input
                         id="city"
                         value={shippingInfo.city}
                         onChange={(e) => handleInputChange("city", e.target.value)}
+                        className={errors.city ? "border-red-500" : ""}
                       />
+                      {errors.city && <p className="text-sm text-red-500">{errors.city}</p>}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="state">State</Label>
+                      <Label htmlFor="state">State *</Label>
                       <Select value={shippingInfo.state} onValueChange={(value) => handleInputChange("state", value)}>
-                        <SelectTrigger>
+                        <SelectTrigger className={errors.state ? "border-red-500" : ""}>
                           <SelectValue placeholder="Select state" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="CA">California</SelectItem>
-                          <SelectItem value="NY">New York</SelectItem>
-                          <SelectItem value="TX">Texas</SelectItem>
-                          <SelectItem value="FL">Florida</SelectItem>
+                          {nigerianStates.map((state) => (
+                            <SelectItem key={state} value={state}>{state}</SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
+                      {errors.state && <p className="text-sm text-red-500">{errors.state}</p>}
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="zipCode">ZIP Code</Label>
+                      <Label htmlFor="zipCode">ZIP Code *</Label>
                       <Input
                         id="zipCode"
                         value={shippingInfo.zipCode}
                         onChange={(e) => handleInputChange("zipCode", e.target.value)}
+                        className={errors.zipCode ? "border-red-500" : ""}
                       />
+                      {errors.zipCode && <p className="text-sm text-red-500">{errors.zipCode}</p>}
                     </div>
                   </div>
 
-                  <Button onClick={() => setStep(2)} className="w-full" size="lg">
+                  <Button onClick={handleNextStep} className="w-full" size="lg">
                     Continue to Payment
                   </Button>
                 </CardContent>
@@ -262,7 +362,11 @@ export default function CheckoutPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center space-x-2 mb-4">
-                      <Checkbox id="sameAsShipping" checked={sameAsShipping} onCheckedChange={setSameAsShipping} />
+                      <Checkbox 
+                        id="sameAsShipping" 
+                        checked={sameAsShipping} 
+                        onCheckedChange={(checked) => setSameAsShipping(checked === true)}
+                      />
                       <Label htmlFor="sameAsShipping">Same as shipping address</Label>
                     </div>
 
@@ -330,7 +434,7 @@ export default function CheckoutPage() {
                     <Button variant="outline" onClick={() => setStep(2)} className="flex-1">
                       Back to Payment
                     </Button>
-                    <Button className="flex-1 bg-green-600 hover:bg-green-700">
+                    <Button onClick={handlePlaceOrder} className="flex-1 bg-green-600 hover:bg-green-700">
                       <Lock className="mr-2 h-4 w-4" />
                       Place Order
                     </Button>
@@ -347,8 +451,8 @@ export default function CheckoutPage() {
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {orderItems.map((item) => (
-                  <div key={item.id} className="flex gap-3">
+                {cartItems.map((item) => (
+                  <div key={item.asin} className="flex gap-3">
                     <Image
                       src={item.image || "/placeholder.svg"}
                       alt={item.name}

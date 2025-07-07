@@ -7,56 +7,43 @@ import { ShoppingCart, Heart, Star, TrendingUp, Zap, Shield, UserPlus } from "lu
 import Image from "next/image"
 import Link from "next/link"
 import { PRODUCT_IMAGES, CATEGORY_IMAGES, HERO_IMAGE } from "@/lib/constants/images"
+import { auth } from "@/auth"
+import data from '@/data.json';
 
-const featuredProducts = [
-  {
-    id: 1,
-    name: "Artisan Ceramic Vase",
-    price: 89.99,
-    originalPrice: 120.0,
-    image: PRODUCT_IMAGES.ceramicVase,
-    rating: 4.8,
-    reviews: 124,
-    badge: "Trending",
-  },
-  {
-    id: 2,
-    name: "Handwoven Silk Scarf",
-    price: 156.0,
-    image: PRODUCT_IMAGES.silkScarf,
-    rating: 4.9,
-    reviews: 89,
-    badge: "New",
-  },
-  {
-    id: 3,
-    name: "Vintage Leather Journal",
-    price: 45.99,
-    originalPrice: 65.0,
-    image: PRODUCT_IMAGES.leatherJournal,
-    rating: 4.7,
-    reviews: 203,
-    badge: "Sale",
-  },
-  {
-    id: 4,
-    name: "Crystal Pendant Necklace",
-    price: 234.0,
-    image: PRODUCT_IMAGES.crystalNecklace,
-    rating: 5.0,
-    reviews: 67,
-    badge: "Premium",
-  },
-]
+// Types for products from data.json
+interface Product {
+  asin: string;
+  product_title: string;
+  product_price: string;
+  product_original_price: string;
+  product_star_rating: string;
+  product_num_ratings: string;
+  product_image: string;
+  is_prime: boolean;
+  amount_sold: string;
+  delivery_info: string;
+  productStatus: string;
+}
 
-const categories = [
-  { name: "Jewelry", count: 234, image: CATEGORY_IMAGES.jewelry },
-  { name: "Home Decor", count: 156, image: CATEGORY_IMAGES.homeDecor },
-  { name: "Fashion", count: 189, image: CATEGORY_IMAGES.fashion },
-  { name: "Art", count: 98, image: CATEGORY_IMAGES.art },
-]
+interface Category {
+  name: string;
+  count: number;
+  image: string;
+}
 
-export default function GuestHomePage() {
+export default async function GuestHomePage() {
+  const session = await auth()
+  const isLoggedIn = !!session?.user
+
+  const categories: Category[] = Object.keys(data).slice(0, 4).map((cat) => ({
+    name: cat,
+    count: (data as Record<string, Product[]>)[cat].length,
+    image: (data as Record<string, Product[]>)[cat][0]?.product_image || '/placeholder.svg',
+  }));
+
+  const allProducts: Product[] = Object.values(data).flat();
+  const featuredProducts: Product[] = allProducts.slice(29, 37);
+
   return (
     <SidebarInset>
       <div className="flex-1 space-y-8 p-4 md:p-8">
@@ -69,7 +56,7 @@ export default function GuestHomePage() {
             </Badge>
             <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-6xl">
               Welcome to
-              <span className="block text-primary">Carefree Store</span>
+              <span className="block ">Carefree Store</span>
             </h1>
             <p className="mb-6 text-lg text-muted-foreground">
               Your one-stop destination for all your shopping needs. Quality products, great prices, and excellent service.
@@ -78,12 +65,14 @@ export default function GuestHomePage() {
               <Button size="lg" className="text-base" asChild>
                 <Link href="/products">Explore Collection</Link>
               </Button>
-              <Button size="lg" variant="outline" className="text-base" asChild>
-                <Link href="/auth/register">Join Our Community</Link>
-              </Button>
+              {!isLoggedIn && (
+                <Button size="lg" variant="outline" className="text-base" asChild>
+                  <Link href="/auth/register">Join Our Community</Link>
+                </Button>
+              )}
             </div>
           </div>
-          <div className="absolute right-0 top-0 h-full w-1/2 opacity-20">
+          <div className="absolute right-0 top-0 h-full w-full md:w-1/2 opacity-40">
             <Image
               src={HERO_IMAGE}
               alt="Hero"
@@ -95,29 +84,31 @@ export default function GuestHomePage() {
         </section>
 
         {/* Sign Up CTA */}
-        <Card className="border-0 bg-gradient-to-r from-primary/10 via-primary/5 to-secondary/10">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold">Join Carefree Store Today</h3>
-                <p className="text-muted-foreground">
-                  Create an account to save favorites, track orders, and get exclusive member benefits
-                </p>
+        {!isLoggedIn && (
+          <Card className="border-0 bg-gradient-to-r from-primary/10 via-primary/5 to-secondary/10">
+            <CardContent className="p-6">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold">Join Carefree Store Today</h3>
+                  <p className="text-muted-foreground">
+                    Create an account to save favorites, track orders, and get exclusive member benefits
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <Button variant="outline" asChild>
+                    <Link href="/auth/login">Sign In</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/auth/register">
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Sign Up Free
+                    </Link>
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-3">
-                <Button variant="outline" asChild>
-                  <Link href="/auth/login">Sign In</Link>
-                </Button>
-                <Button asChild>
-                  <Link href="/auth/register">
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Sign Up Free
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Features */}
         <section className="grid gap-6 md:grid-cols-3">
@@ -152,7 +143,7 @@ export default function GuestHomePage() {
               <Link href="/categories">View All</Link>
             </Button>
           </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
             {categories.map((category) => (
               <Card key={category.name} className="group cursor-pointer overflow-hidden transition-all hover:shadow-lg">
                 <div className="aspect-square overflow-hidden">
@@ -181,13 +172,13 @@ export default function GuestHomePage() {
               <Link href="/products">View All</Link>
             </Button>
           </div>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-6 grid-cols-2 lg:grid-cols-4">
             {featuredProducts.map((product) => (
-              <Card key={product.id} className="group overflow-hidden transition-all hover:shadow-lg">
+              <Card key={product.asin} className="group overflow-hidden transition-all hover:shadow-lg">
                 <div className="relative aspect-square overflow-hidden">
                   <Image
-                    src={product.image || "/placeholder.svg"}
-                    alt={product.name}
+                    src={product.product_image || "/placeholder.svg"}
+                    alt={product.product_title}
                     width={300}
                     height={300}
                     className="h-full w-full object-cover transition-transform group-hover:scale-105"
@@ -195,45 +186,48 @@ export default function GuestHomePage() {
                   <Badge
                     className="absolute left-3 top-3"
                     variant={
-                      product.badge === "Sale"
+                      product.productStatus === "Sale"
                         ? "destructive"
-                        : product.badge === "New"
+                        : product.productStatus === "New"
                           ? "default"
-                          : product.badge === "Premium"
+                          : product.productStatus === "Premium"
                             ? "secondary"
                             : "outline"
                     }
                   >
-                    {product.badge}
+                    {product.productStatus}
                   </Badge>
                   <Button
                     size="icon"
                     variant="secondary"
                     className="absolute right-3 top-3 opacity-0 transition-opacity group-hover:opacity-100"
                     asChild
+                    // onClick={()=>{
+                    //   isLoggedIn ? handleSaveForLater(product.asin) : router.push('/auth/login')
+                    // }}
                   >
-                    <Link href="/auth/login">
+                    {/* <Link href={isL"/auth/login"> */}
                       <Heart className="h-4 w-4" />
-                    </Link>
+                    {/* </Link> */}
                   </Button>
                 </div>
                 <CardContent className="p-4">
-                  <h3 className="font-semibold line-clamp-2">{product.name}</h3>
+                  <h3 className="font-semibold line-clamp-2">{product.product_title}</h3>
                   <div className="mt-2 flex items-center gap-1">
                     <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium">{product.rating}</span>
-                    <span className="text-sm text-muted-foreground">({product.reviews})</span>
+                    <span className="text-sm font-medium">{product.product_star_rating}</span>
+                    <span className="text-sm text-muted-foreground">({product.product_num_ratings})</span>
                   </div>
                   <div className="mt-2 flex items-center gap-2">
-                    <span className="text-lg font-bold">${product.price}</span>
-                    {product.originalPrice && (
-                      <span className="text-sm text-muted-foreground line-through">${product.originalPrice}</span>
+                    <span className="text-lg font-bold">${product.product_price}</span>
+                    {product.product_original_price && (
+                      <span className="text-sm text-muted-foreground line-through">${product.product_original_price}</span>
                     )}
                   </div>
                   <Button className="mt-3 w-full" size="sm" asChild>
-                    <Link href="/cart">
+                    <Link href={`/products/${product.asin}`}>
                       <ShoppingCart className="mr-2 h-4 w-4" />
-                      Add to Cart
+                      View Product
                     </Link>
                   </Button>
                 </CardContent>

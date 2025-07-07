@@ -1,3 +1,4 @@
+"use client"
 import {
   Sidebar,
   SidebarContent,
@@ -25,8 +26,13 @@ import {
   UserPlus,
   Info,
   Phone,
+  User as UserIcon,
+  Truck,
 } from "lucide-react"
 import Link from "next/link"
+import { useSession, signOut } from "next-auth/react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 const publicNavigation = [
   {
@@ -36,6 +42,7 @@ const publicNavigation = [
       { title: "Products", url: "/products", icon: ShoppingBag },
       { title: "Categories", url: "/categories", icon: Package },
       { title: "Search", url: "/search", icon: Search },
+      { title: "Orders", url: "/order-history", icon: Truck },
     ],
   },
   {
@@ -57,8 +64,14 @@ const publicNavigation = [
 ]
 
 export function AppSidebar() {
+  const { data: session } = useSession()
+  const isLoggedIn = !!session?.user
+  const user = session?.user
+  console.log(user,session)
+  const isMobile = useIsMobile()
+
   return (
-    <Sidebar variant="inset">
+    <Sidebar  variant="inset">
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -77,55 +90,85 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
-        {publicNavigation.map((group) => (
-          <SidebarGroup key={group.title}>
-            <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
-                      <Link href={item.url}>
-                        <item.icon />
-                        <span>{item.title}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        ))}
+        {/* Show user info if logged in */}
+        {isLoggedIn && (
+          <div className="flex flex-col items-center py-6">
+            <Avatar className="h-14 w-14 mb-2">
+              {user?.image ? (
+                <AvatarImage src={user.image} alt={user.name || "User"} />
+              ) : (
+                <AvatarFallback>
+                  <UserIcon className="h-7 w-7" />
+                </AvatarFallback>
+              )}
+            </Avatar>
+            {!isMobile && (
+              <>
+                <div className="font-semibold text-base">{user?.name}</div>
+                <div className="text-xs text-muted-foreground">{user?.email}</div>
+                <Button size="sm" variant="outline" className="mt-2" onClick={() => signOut()}>
+                  Sign out
+                </Button>
+              </>
+            )}
+          </div>
+        )}
+        {/* Show navigation groups, but hide Account group if logged in */}
+        {publicNavigation.map((group) => {
+          if (isLoggedIn && group.title === "Account") return null
+          return (
+            <SidebarGroup key={group.title}>
+              <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {group.items.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild>
+                        <Link href={item.url}>
+                          <item.icon />
+                          <span>{item.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )
+        })}
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <Card className="border-0 bg-gradient-to-br from-primary/10 to-primary/5">
-              <CardContent className="p-4 text-center space-y-3">
-                <div className="space-y-1">
-                  <h3 className="font-semibold text-sm">Join Our Community</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Sign up for exclusive deals and early access to new collections
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Button size="sm" className="w-full" asChild>
-                    <Link href="/auth/register">
-                      <UserPlus className="mr-2 h-3 w-3" />
-                      Sign Up
-                    </Link>
-                  </Button>
-                  <Button size="sm" variant="outline" className="w-full" asChild>
-                    <Link href="/auth/login">
-                      <LogIn className="mr-2 h-3 w-3" />
-                      Sign In
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        {/* Hide sign up/sign in CTA if logged in */}
+        {!isLoggedIn && (
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <Card className="border-0 bg-gradient-to-br from-primary/10 to-primary/5">
+                <CardContent className="p-4 text-center space-y-3">
+                  <div className="space-y-1">
+                    <h3 className="font-semibold text-sm">Join Our Community</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Sign up for exclusive deals and early access to new collections
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Button size="sm" className="w-full" asChild>
+                      <Link href="/auth/register">
+                        <UserPlus className="mr-2 h-3 w-3" />
+                        Sign Up
+                      </Link>
+                    </Button>
+                    <Button size="sm" variant="outline" className="w-full" asChild>
+                      <Link href="/auth/login">
+                        <LogIn className="mr-2 h-3 w-3" />
+                        Sign In
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        )}
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

@@ -1,35 +1,83 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useSession, signOut } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
-import { Search, LogIn, UserPlus, ShoppingCart, Heart } from "lucide-react"
+import { Search, LogIn, UserPlus, ShoppingCart, Heart, User as UserIcon } from "lucide-react"
 import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { AVATAR_IMAGES } from "@/lib/constants/images"
+import { useCartStore } from '@/store/cart';
+import data from '@/data.json';
+import { useRouter } from 'next/navigation';
+
+interface Product {
+  asin: string;
+  product_title: string;
+  product_price: string;
+  product_original_price: string;
+  product_star_rating: string;
+  product_num_ratings: string;
+  product_image: string;
+  is_prime: boolean;
+  amount_sold: string;
+  delivery_info: string;
+  productStatus: string;
+}
 
 interface NavbarProps {
-  isLoggedIn?: boolean
   cartItemCount?: number
 }
 
-export function Navbar({ isLoggedIn = false, cartItemCount = 0 }: NavbarProps) {
+export function Navbar() {
   const { state } = useSidebar()
   const [scrolled, setScrolled] = useState(false)
+  const { data: session } = useSession()
+  const isLoggedIn = !!session?.user
+  const user = session?.user
+  const cartItems = useCartStore((store) => store.cartItems)
+  const cartItemCount = cartItems.reduce((sum, item) => sum + item.quantity, 0)
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const router = useRouter();
+  const allProducts: Product[] = Object.values(data).flat();
 
   // Add scroll event listener to detect when to add shadow
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10)
     }
-
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setShowDropdown(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    if (value.length > 1) {
+      const results = allProducts.filter((p) =>
+        p.product_title.toLowerCase().includes(value.toLowerCase())
+      ).slice(0, 5);
+      setSearchResults(results);
+      setShowDropdown(true);
+    } else {
+      setShowDropdown(false);
+    }
+  };
 
   return (
     <header
@@ -38,10 +86,35 @@ export function Navbar({ isLoggedIn = false, cartItemCount = 0 }: NavbarProps) {
       }`}
     >
       <SidebarTrigger className="-ml-1" />
-      <div className="flex flex-1 items-center gap-4">
+      <div className="flex flex-1 items-center justify-between md:px-10">
+        <div className="md:block hidden"></div>
         <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search for products..." className="pl-10" />
+          <form onSubmit={handleSearch} autoComplete="off">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search for products..."
+              className="pl-10"
+              value={searchQuery}
+              onChange={handleInputChange}
+              onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
+            />
+          </form>
+          {showDropdown && searchResults.length > 0 && (
+            <div className="absolute z-50 mt-2 w-full bg-white border rounded shadow-lg max-h-64 overflow-auto">
+              {searchResults.map((product) => (
+                <Link
+                  key={product.asin}
+                  href={`/products/${product.asin}`}
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100"
+                  onClick={() => setShowDropdown(false)}
+                >
+                  <img src={product.product_image || '/placeholder.svg'} alt={product.product_title} className="w-8 h-8 object-cover rounded" />
+                  <span className="truncate">{product.product_title}</span>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
@@ -85,11 +158,20 @@ export function Navbar({ isLoggedIn = false, cartItemCount = 0 }: NavbarProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Avatar className="h-8 w-8 cursor-pointer">
-                  <AvatarImage src={AVATAR_IMAGES.default} alt="User" />
-                  <AvatarFallback>JD</AvatarFallback>
+                  {user?.image ? (
+                    <AvatarImage src={user.image} alt={user.name || "User"} />
+                  ) : (
+                    <AvatarFallback>
+                      <UserIcon className="h-5 w-5" />
+                    </AvatarFallback>
+                  )}
                 </Avatar>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <div className="px-3 py-2 border-b mb-2">
+                  <div className="font-semibold text-sm">{user?.name}</div>
+                  <div className="text-xs text-muted-foreground">{user?.email}</div>
+                </div>
                 <DropdownMenuItem asChild>
                   <Link href="/profile">Profile</Link>
                 </DropdownMenuItem>
@@ -99,7 +181,7 @@ export function Navbar({ isLoggedIn = false, cartItemCount = 0 }: NavbarProps) {
                 <DropdownMenuItem asChild>
                   <Link href="/settings">Settings</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>Sign out</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => signOut()}>Sign out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}

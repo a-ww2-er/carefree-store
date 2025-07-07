@@ -19,52 +19,108 @@ import {
 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
-
-// Mock order data - in real app this would come from URL params or API
-const orderData = {
-  orderNumber: "ORD-2024-001234",
-  orderDate: "2024-01-28",
-  estimatedDelivery: "2024-02-05",
-  total: 401.97,
-  subtotal: 345.98,
-  shipping: 9.99,
-  tax: 46.0,
-  paymentMethod: "•••• •••• •••• 4242",
-  shippingAddress: {
-    name: "John Doe",
-    address: "123 Main Street",
-    city: "San Francisco",
-    state: "CA",
-    zipCode: "94102",
-    country: "United States",
-  },
-  items: [
-    {
-      id: 1,
-      name: "Artisan Ceramic Vase",
-      price: 89.99,
-      quantity: 1,
-      image: "/placeholder.svg?height=80&width=80",
-    },
-    {
-      id: 2,
-      name: "Handwoven Silk Scarf",
-      price: 156.0,
-      quantity: 2,
-      image: "/placeholder.svg?height=80&width=80",
-    },
-  ],
-  trackingNumber: "1Z999AA1234567890",
-}
+import { getOrderByNumber } from "../checkout/actions"
+import { useSearchParams } from "next/navigation"
 
 export default function OrderSuccessPage() {
   const [showConfetti, setShowConfetti] = useState(true)
+  const [orderData, setOrderData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const searchParams = useSearchParams()
+  const orderNumber = searchParams.get('orderNumber')
+
+  useEffect(() => {
+    async function fetchOrder() {
+      if (orderNumber) {
+        const order = await getOrderByNumber(orderNumber)
+        setOrderData(order)
+      }
+      setLoading(false)
+    }
+    fetchOrder()
+  }, [orderNumber])
 
   useEffect(() => {
     // Hide confetti effect after 3 seconds
     const timer = setTimeout(() => setShowConfetti(false), 3000)
     return () => clearTimeout(timer)
   }, [])
+
+  const downloadInvoice = () => {
+    if (!orderData) return;
+    
+    // Create invoice content
+    const invoiceContent = `
+      CAREFREE STORE - INVOICE
+      
+      Order Number: ${orderData.orderNumber}
+      Date: ${new Date(orderData.orderDate).toLocaleDateString()}
+      
+      SHIPPING ADDRESS:
+      ${orderData.shippingInfo.firstName} ${orderData.shippingInfo.lastName}
+      ${orderData.shippingInfo.address}
+      ${orderData.shippingInfo.city}, ${orderData.shippingInfo.state} ${orderData.shippingInfo.zipCode}
+      ${orderData.shippingInfo.country}
+      
+      ITEMS:
+      ${orderData.items.map((item: any) => 
+        `${item.name} x${item.quantity} - $${item.price}`
+      ).join('\n')}
+      
+      SUBTOTAL: $${orderData.subtotal.toFixed(2)}
+      SHIPPING: $${orderData.shipping.toFixed(2)}
+      TAX: $${orderData.tax.toFixed(2)}
+      TOTAL: $${orderData.total.toFixed(2)}
+      
+      Payment Method: ${orderData.paymentMethod}
+      Status: ${orderData.status}
+    `;
+
+    // Create blob and download
+    const blob = new Blob([invoiceContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoice-${orderData.orderNumber}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
+  if (loading) {
+    return (
+      <SidebarInset>
+        <div className="flex-1 p-4 md:p-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center py-12">
+              <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Loading order details...</h3>
+            </div>
+          </div>
+        </div>
+      </SidebarInset>
+    )
+  }
+
+  if (!orderData) {
+    return (
+      <SidebarInset>
+        <div className="flex-1 p-4 md:p-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center py-12">
+              <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Order not found</h3>
+              <p className="text-muted-foreground mb-6">The order you're looking for doesn't exist.</p>
+              <Button asChild>
+                <Link href="/order-history">View Order History</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </SidebarInset>
+    )
+  }
 
   return (
     <SidebarInset>
@@ -147,8 +203,8 @@ export default function OrderSuccessPage() {
                   <CardTitle>Order Items</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {orderData.items.map((item) => (
-                    <div key={item.id} className="flex gap-4 p-4 border rounded-lg">
+                  {orderData.items.map((item: any) => (
+                    <div key={item.asin} className="flex gap-4 p-4 border rounded-lg">
                       <Image
                         src={item.image || "/placeholder.svg"}
                         alt={item.name}
@@ -176,13 +232,12 @@ export default function OrderSuccessPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    <p className="font-medium">{orderData.shippingAddress.name}</p>
-                    <p className="text-sm text-muted-foreground">{orderData.shippingAddress.address}</p>
+                    <p className="font-medium">{orderData.shippingInfo.firstName} {orderData.shippingInfo.lastName}</p>
+                    <p className="text-sm text-muted-foreground">{orderData.shippingInfo.address}</p>
                     <p className="text-sm text-muted-foreground">
-                      {orderData.shippingAddress.city}, {orderData.shippingAddress.state}{" "}
-                      {orderData.shippingAddress.zipCode}
+                      {orderData.shippingInfo.city}, {orderData.shippingInfo.state} {orderData.shippingInfo.zipCode}
                     </p>
-                    <p className="text-sm text-muted-foreground">{orderData.shippingAddress.country}</p>
+                    <p className="text-sm text-muted-foreground">{orderData.shippingInfo.country}</p>
                   </div>
                   <Separator className="my-4" />
                   <div className="flex items-center gap-2 text-sm">
@@ -253,13 +308,13 @@ export default function OrderSuccessPage() {
                   <CardTitle>What's Next?</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-3">
-                  <Button className="w-full" asChild>
+                  {/* <Button className="w-full" asChild>
                     <Link href={`/orders/${orderData.orderNumber}`}>
                       <Package className="mr-2 h-4 w-4" />
                       Track Your Order
                     </Link>
-                  </Button>
-                  <Button variant="outline" className="w-full bg-transparent">
+                  </Button> */}
+                  <Button  className="w-full" onClick={downloadInvoice}>
                     <Download className="mr-2 h-4 w-4" />
                     Download Receipt
                   </Button>
@@ -302,7 +357,7 @@ export default function OrderSuccessPage() {
           </div>
 
           {/* Email Confirmation Notice */}
-          <Card className="mt-8 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
+          {/* <Card className="mt-8 border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950">
             <CardContent className="p-6">
               <div className="flex items-center gap-3">
                 <Mail className="h-5 w-5 text-green-600" />
@@ -315,7 +370,7 @@ export default function OrderSuccessPage() {
                 </div>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
       </div>
     </SidebarInset>

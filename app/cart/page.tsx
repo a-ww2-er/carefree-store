@@ -10,6 +10,10 @@ import { Separator } from "@/components/ui/separator"
 import { Minus, Plus, Trash2, Heart, ShoppingBag, ArrowRight } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { useCartStore } from '@/store/cart';
+import { useSession } from "next-auth/react"
+import { saveForLater } from "./actions"
+import { useTransition } from "react"
 
 interface CartItem {
   id: number
@@ -22,74 +26,23 @@ interface CartItem {
   variant?: string
 }
 
-const initialCartItems: CartItem[] = [
-  {
-    id: 1,
-    name: "Artisan Ceramic Vase",
-    price: 89.99,
-    originalPrice: 120.0,
-    image: "/placeholder.svg?height=150&width=150",
-    quantity: 1,
-    inStock: true,
-    variant: "Blue Glaze",
-  },
-  {
-    id: 2,
-    name: "Handwoven Silk Scarf",
-    price: 156.0,
-    image: "/placeholder.svg?height=150&width=150",
-    quantity: 2,
-    inStock: true,
-    variant: "Emerald Pattern",
-  },
-  {
-    id: 3,
-    name: "Crystal Pendant Necklace",
-    price: 234.0,
-    image: "/placeholder.svg?height=150&width=150",
-    quantity: 1,
-    inStock: false,
-  },
-]
-
-const savedItems = [
-  {
-    id: 4,
-    name: "Vintage Leather Journal",
-    price: 45.99,
-    originalPrice: 65.0,
-    image: "/placeholder.svg?height=100&width=100",
-    inStock: true,
-  },
-  {
-    id: 5,
-    name: "Handmade Pottery Bowl",
-    price: 67.5,
-    image: "/placeholder.svg?height=100&width=100",
-    inStock: true,
-  },
-]
-
 export default function CartPage() {
-  const [cartItems, setCartItems] = useState<CartItem[]>(initialCartItems)
+  const { data: session } = useSession()
+  const { cartItems, updateQuantity, removeItem } = useCartStore();
   const [promoCode, setPromoCode] = useState("")
-
-  const updateQuantity = (id: number, newQuantity: number) => {
-    if (newQuantity === 0) {
-      setCartItems(cartItems.filter((item) => item.id !== id))
-    } else {
-      setCartItems(cartItems.map((item) => (item.id === id ? { ...item, quantity: newQuantity } : item)))
-    }
-  }
-
-  const removeItem = (id: number) => {
-    setCartItems(cartItems.filter((item) => item.id !== id))
-  }
-
+  const user = session?.user
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const shipping = subtotal > 100 ? 0 : 9.99
   const tax = subtotal * 0.08
   const total = subtotal + shipping + tax
+  const [isPending, startTransition] = useTransition();
+
+  const handleSaveForLater = (asin: string) => {
+    startTransition(async () => {
+      await saveForLater(asin);
+      removeItem(asin);
+    });
+  };
 
   return (
     <SidebarInset>
@@ -121,7 +74,7 @@ export default function CartPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-4 p-4 border rounded-lg">
+                    <div key={item.asin} className="flex gap-4 p-4 border rounded-lg">
                       <div className="relative w-24 h-24 rounded-lg overflow-hidden">
                         <Image
                           src={item.image || "/placeholder.svg"}
@@ -130,25 +83,25 @@ export default function CartPage() {
                           height={150}
                           className="w-full h-full object-cover"
                         />
-                        {!item.inStock && (
+                        {/* {!item.inStock && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                             <Badge variant="secondary" className="text-xs">
                               Out of Stock
                             </Badge>
                           </div>
-                        )}
+                        )} */}
                       </div>
 
                       <div className="flex-1 space-y-2">
                         <div className="flex justify-between items-start">
                           <div>
                             <h3 className="font-semibold">{item.name}</h3>
-                            {item.variant && <p className="text-sm text-muted-foreground">{item.variant}</p>}
+                            {/* {item.variant && <p className="text-sm text-muted-foreground">{item.variant}</p>} */}
                           </div>
                           <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => removeItem(item.id)}
+                            onClick={() => removeItem(item.asin)}
                             className="text-muted-foreground hover:text-destructive"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -158,9 +111,9 @@ export default function CartPage() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="font-semibold">${item.price}</span>
-                            {item.originalPrice && (
+                            {/* {item.originalPrice && (
                               <span className="text-sm text-muted-foreground line-through">${item.originalPrice}</span>
-                            )}
+                            )} */}
                           </div>
 
                           <div className="flex items-center gap-2">
@@ -168,8 +121,8 @@ export default function CartPage() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                              disabled={!item.inStock}
+                              onClick={() => updateQuantity(item.asin, item.quantity - 1)}
+                              // disabled={!item.inStock}
                             >
                               <Minus className="h-3 w-3" />
                             </Button>
@@ -178,8 +131,8 @@ export default function CartPage() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                              disabled={!item.inStock}
+                              onClick={() => updateQuantity(item.asin, item.quantity + 1)}
+                              // disabled={!item.inStock}
                             >
                               <Plus className="h-3 w-3" />
                             </Button>
@@ -187,7 +140,7 @@ export default function CartPage() {
                         </div>
 
                         <div className="flex gap-2">
-                          <Button variant="outline" size="sm">
+                          <Button variant="outline" size="sm" onClick={() => handleSaveForLater(item.asin)} disabled={isPending}>
                             <Heart className="mr-1 h-3 w-3" />
                             Save for Later
                           </Button>
@@ -199,7 +152,8 @@ export default function CartPage() {
               </Card>
 
               {/* Saved Items */}
-              {savedItems.length > 0 && (
+              {/* This section is no longer needed as saved items are not tracked in the store */}
+              {/* {savedItems.length > 0 && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Saved for Later</CardTitle>
@@ -234,7 +188,7 @@ export default function CartPage() {
                     </div>
                   </CardContent>
                 </Card>
-              )}
+              )} */}
             </div>
 
             {/* Order Summary */}
@@ -276,7 +230,7 @@ export default function CartPage() {
                   </div>
 
                   <Button className="w-full" size="lg" asChild>
-                    <Link href="/auth/login">
+                    <Link href={user ? "/checkout":"/auth/login"}>
                       Proceed to Checkout
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState, useTransition } from "react"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,6 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ShoppingCart, Heart, Star, Trash2, Share2, Grid3X3, List, LogIn, UserPlus, Info } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import { getWishlistItems } from "./actions"
+import { saveForLater } from "../cart/actions"
 
 interface WishlistItem {
   id: number
@@ -25,78 +27,34 @@ interface WishlistItem {
   dateAdded: string
 }
 
-const initialWishlistItems: WishlistItem[] = [
-  {
-    id: 1,
-    name: "Artisan Ceramic Vase",
-    price: 89.99,
-    originalPrice: 120.0,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 4.8,
-    reviews: 124,
-    badge: "Sale",
-    category: "Home Decor",
-    inStock: true,
-    dateAdded: "2024-01-15",
-  },
-  {
-    id: 2,
-    name: "Handwoven Silk Scarf",
-    price: 156.0,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 4.9,
-    reviews: 89,
-    badge: "New",
-    category: "Fashion",
-    inStock: true,
-    dateAdded: "2024-01-20",
-  },
-  {
-    id: 3,
-    name: "Crystal Pendant Necklace",
-    price: 234.0,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 5.0,
-    reviews: 67,
-    badge: "Premium",
-    category: "Jewelry",
-    inStock: false,
-    dateAdded: "2024-01-18",
-  },
-  {
-    id: 4,
-    name: "Vintage Leather Journal",
-    price: 45.99,
-    originalPrice: 65.0,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 4.7,
-    reviews: 203,
-    badge: "Sale",
-    category: "Accessories",
-    inStock: true,
-    dateAdded: "2024-01-22",
-  },
-  {
-    id: 5,
-    name: "Handmade Pottery Bowl",
-    price: 67.5,
-    image: "/placeholder.svg?height=300&width=300",
-    rating: 4.6,
-    reviews: 156,
-    category: "Home Decor",
-    inStock: true,
-    dateAdded: "2024-01-25",
-  },
-]
-
 export default function WishlistPage() {
-  const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>(initialWishlistItems)
+  const [wishlistItems, setWishlistItems] = useState<any[]>([])
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [sortBy, setSortBy] = useState("dateAdded")
-  const [isLoggedIn] = useState(false) // This would come from auth context
+  const [isPending, startTransition] = useTransition();
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    async function fetchWishlist() {
+      const items = await getWishlistItems()
+      setWishlistItems(items)
+      setIsLoggedIn(Array.isArray(items))
+    }
+    fetchWishlist()
+  }, [])
+
+  const handleSaveForLater = (asin: string) => {
+    startTransition(async () => {
+      await saveForLater(asin)
+      // Optionally refetch wishlist
+      const items = await getWishlistItems()
+      setWishlistItems(items)
+    })
+  }
 
   const removeFromWishlist = (id: number) => {
-    setWishlistItems(wishlistItems.filter((item) => item.id !== id))
+    // This function will need to be updated to remove from DB
+    console.log(`Removing item ${id} from wishlist`)
   }
 
   const moveToCart = (id: number) => {
@@ -107,14 +65,15 @@ export default function WishlistPage() {
   const sortedItems = [...wishlistItems].sort((a, b) => {
     switch (sortBy) {
       case "price-low":
-        return a.price - b.price
+        return parseFloat(a.product_price.replace(/[^\d.]/g, "")) - parseFloat(b.product_price.replace(/[^\d.]/g, ""))
       case "price-high":
-        return b.price - a.price
+        return parseFloat(b.product_price.replace(/[^\d.]/g, "")) - parseFloat(a.product_price.replace(/[^\d.]/g, ""))
       case "name":
-        return a.name.localeCompare(b.name)
+        return a.product_title.localeCompare(b.product_title)
       case "dateAdded":
       default:
-        return new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
+        // Since we don't have dateAdded, just return 0 for now
+        return 0
     }
   })
 
@@ -229,26 +188,26 @@ export default function WishlistPage() {
                 >
                   <div className={`relative overflow-hidden ${viewMode === "list" ? "w-48 h-48" : "aspect-square"}`}>
                     <Image
-                      src={item.image || "/placeholder.svg"}
+                      src={item.product_image || "/placeholder.svg"}
                       alt={item.name}
                       width={300}
                       height={300}
                       className="h-full w-full object-cover transition-transform group-hover:scale-105"
                     />
-                    {item.badge && (
+                    {item.productStatus && (
                       <Badge
                         className="absolute left-3 top-3"
                         variant={
-                          item.badge === "Sale"
+                          item.productStatus === "Sale"
                             ? "destructive"
-                            : item.badge === "New"
+                            : item.productStatus === "New"
                               ? "default"
-                              : item.badge === "Premium"
+                              : item.productStatus === "Premium"
                                 ? "secondary"
                                 : "outline"
                         }
                       >
-                        {item.badge}
+                        {item.productStatus}
                       </Badge>
                     )}
                     <Button
@@ -259,40 +218,42 @@ export default function WishlistPage() {
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                    {!item.inStock && (
+                    {/* {!item.inStock && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                         <Badge variant="secondary">Out of Stock</Badge>
                       </div>
-                    )}
+                    )} */}
                   </div>
                   <CardContent className={`p-4 ${viewMode === "list" ? "flex-1" : ""}`}>
                     <div className="flex items-start justify-between mb-2">
-                      <h3 className="font-semibold line-clamp-2">{item.name}</h3>
+                      <h3 className="font-semibold line-clamp-2">{item.product_title}</h3>
                       <Badge variant="outline" className="ml-2 text-xs">
-                        {item.category}
+                        {item.productStatus || "Product"}
                       </Badge>
                     </div>
                     <div className="flex items-center gap-1 mb-2">
                       <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                      <span className="text-sm font-medium">{item.rating}</span>
-                      <span className="text-sm text-muted-foreground">({item.reviews})</span>
+                      <span className="text-sm font-medium">{item.product_star_rating}</span>
+                      <span className="text-sm text-muted-foreground">({item.product_num_ratings})</span>
                     </div>
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-lg font-bold">${item.price}</span>
-                      {item.originalPrice && (
-                        <span className="text-sm text-muted-foreground line-through">${item.originalPrice}</span>
+                      <span className="text-lg font-bold">{item.product_price}</span>
+                      {item.product_original_price && (
+                        <span className="text-sm text-muted-foreground line-through">{item.product_original_price}</span>
                       )}
                     </div>
                     <p className="text-xs text-muted-foreground mb-3">
-                      Added {new Date(item.dateAdded).toLocaleDateString()}
+                      Added to wishlist
                     </p>
                     <div className="flex gap-2">
-                      <Button className="flex-1" size="sm" disabled={!item.inStock} onClick={() => moveToCart(item.id)}>
-                        <ShoppingCart className="mr-2 h-4 w-4" />
-                        {item.inStock ? "Add to Cart" : "Out of Stock"}
+                      <Button className="flex-1" size="sm" asChild>
+                        <Link href={`/products/${item.asin}`}>
+                          <ShoppingCart className="mr-2 h-4 w-4" />
+                          View Product
+                        </Link>
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => removeFromWishlist(item.id)}>
-                        <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </CardContent>
@@ -307,8 +268,8 @@ export default function WishlistPage() {
                   <div>
                     <h3 className="font-semibold mb-2">Wishlist Summary</h3>
                     <p className="text-sm text-muted-foreground">
-                      Total value: ${sortedItems.reduce((sum, item) => sum + item.price, 0).toFixed(2)} •
-                      {sortedItems.filter((item) => item.inStock).length} items in stock
+                      Total value: ${sortedItems.reduce((sum, item) => sum + parseFloat(item.product_price.replace(/[^\d.]/g, "")), 0).toFixed(2)} •
+                      {sortedItems.length} items in wishlist
                     </p>
                   </div>
                   <div className="flex gap-2">

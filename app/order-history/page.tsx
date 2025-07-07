@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { getUserOrders } from "../checkout/actions"
+import { useEffect, useState } from "react"
 import { SidebarInset } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -167,20 +168,46 @@ const getStatusColor = (status: string) => {
 }
 
 export default function OrderHistoryPage() {
+  const [orders, setOrders] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [dateFilter, setDateFilter] = useState("all")
   const [activeTab, setActiveTab] = useState("all")
 
+  useEffect(() => {
+    async function fetchOrders() {
+      const userOrders = await getUserOrders()
+      setOrders(userOrders)
+      setLoading(false)
+    }
+    fetchOrders()
+  }, [])
+
+  if (loading) {
+    return (
+      <SidebarInset>
+        <div className="flex-1 p-4 md:p-8">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center py-12">
+              <Package className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-semibold mb-2">Loading orders...</h3>
+            </div>
+          </div>
+        </div>
+      </SidebarInset>
+    )
+  }
+
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
       order.orderNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.items.some((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      order.items.some((item: any) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
     const matchesStatus = statusFilter === "all" || order.status === statusFilter
     const matchesDate =
       dateFilter === "all" ||
-      (dateFilter === "recent" && new Date(order.date) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) ||
-      (dateFilter === "older" && new Date(order.date) <= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
+      (dateFilter === "recent" && new Date(order.orderDate) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)) ||
+      (dateFilter === "older" && new Date(order.orderDate) <= new Date(Date.now() - 30 * 24 * 60 * 60 * 1000))
     const matchesTab = activeTab === "all" || order.status === activeTab
 
     return matchesSearch && matchesStatus && matchesDate && matchesTab
@@ -193,6 +220,46 @@ export default function OrderHistoryPage() {
     delivered: orders.filter((o) => o.status === "delivered").length,
     cancelled: orders.filter((o) => o.status === "cancelled").length,
   }
+
+  const downloadInvoice = (order: any) => {
+    // Create invoice content
+    const invoiceContent = `
+      INVOICE
+      
+      Order Number: ${order.orderNumber}
+      Date: ${new Date(order.orderDate).toLocaleDateString()}
+      
+      SHIPPING ADDRESS:
+      ${order.shippingInfo.firstName} ${order.shippingInfo.lastName}
+      ${order.shippingInfo.address}
+      ${order.shippingInfo.city}, ${order.shippingInfo.state} ${order.shippingInfo.zipCode}
+      ${order.shippingInfo.country}
+      
+      ITEMS:
+      ${order.items.map((item: any) => 
+        `${item.name} x${item.quantity} - $${item.price}`
+      ).join('\n')}
+      
+      SUBTOTAL: $${order.subtotal.toFixed(2)}
+      SHIPPING: $${order.shipping.toFixed(2)}
+      TAX: $${order.tax.toFixed(2)}
+      TOTAL: $${order.total.toFixed(2)}
+      
+      Payment Method: ${order.paymentMethod}
+      Status: ${order.status}
+    `;
+
+    // Create blob and download
+    const blob = new Blob([invoiceContent], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `invoice-${order.orderNumber}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
 
   return (
     <SidebarInset>
@@ -318,11 +385,11 @@ export default function OrderHistoryPage() {
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <div className="flex items-center gap-1">
                                 <Calendar className="h-4 w-4" />
-                                {new Date(order.date).toLocaleDateString()}
+                                {new Date(order.orderDate).toLocaleDateString()}
                               </div>
                               <span>•</span>
                               <span>
-                                {order.itemCount} {order.itemCount === 1 ? "item" : "items"}
+                                {order.items.length} {order.items.length === 1 ? "item" : "items"}
                               </span>
                               <span>•</span>
                               <span className="font-semibold text-foreground">${order.total.toFixed(2)}</span>
@@ -377,15 +444,15 @@ export default function OrderHistoryPage() {
 
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                           <div className="flex gap-2">
-                            <Button variant="outline" size="sm" asChild>
+                            {/* <Button variant="outline" size="sm" asChild>
                               <Link href={`/orders/${order.orderNumber}`}>
                                 <Eye className="mr-2 h-4 w-4" />
                                 View Details
                               </Link>
-                            </Button>
+                            </Button> */}
                             {order.status === "delivered" && (
                               <>
-                                <Button variant="outline" size="sm">
+                                <Button variant="outline" size="sm" onClick={() => downloadInvoice(order)}>
                                   <Download className="mr-2 h-4 w-4" />
                                   Invoice
                                 </Button>
