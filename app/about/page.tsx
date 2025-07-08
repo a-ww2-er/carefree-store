@@ -69,7 +69,6 @@ export default function AboutPage() {
         <section className="mt-12 ">
           <h2 className="text-2xl font-bold mb-4 flex items-center gap-2"><Users className="h-6 w-6" /> Meet Our Team</h2>
           <div className="justify-center gap-6 items-center flex">
-            {/* Example team members, replace with real data if available */}
             <Card className="text-center">
               <CardContent className="flex flex-col items-center p-6">
                 <Image src="https://picsum.photos/400/400" alt="Team Member" width={80} height={80} className="rounded-full mb-3" />

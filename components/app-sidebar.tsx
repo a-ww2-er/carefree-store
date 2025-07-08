@@ -71,10 +71,10 @@ export function AppSidebar() {
   const user = session?.user
   console.log(user,session)
   const isMobile = useIsMobile()
-  const { close } = useSidebar()
+  const { open ,toggleSidebar,} = useSidebar()
 
   const handleNavClick = () => {
-    if (isMobile && close) close()
+    if (isMobile) toggleSidebar()
   }
 
   return (
