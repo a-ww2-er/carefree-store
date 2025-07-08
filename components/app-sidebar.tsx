@@ -11,6 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -43,6 +44,8 @@ const publicNavigation = [
       { title: "Categories", url: "/categories", icon: Package },
       // { title: "Search", url: "/search", icon: Search },
       { title: "Orders", url: "/order-history", icon: Truck },
+      { title: "Cart", url: "/cart", icon: ShoppingCart },
+      { title: "Wishlist", url: "/wishlist", icon: Heart },
     ],
   },
   {
@@ -50,8 +53,7 @@ const publicNavigation = [
     items: [
       { title: "Sign In", url: "/auth/login", icon: LogIn },
       { title: "Create Account", url: "/auth/register", icon: UserPlus },
-      { title: "Cart", url: "/cart", icon: ShoppingCart },
-      { title: "Wishlist", url: "/wishlist", icon: Heart },
+     
     ],
   },
   {
@@ -69,6 +71,11 @@ export function AppSidebar() {
   const user = session?.user
   console.log(user,session)
   const isMobile = useIsMobile()
+  const { close } = useSidebar()
+
+  const handleNavClick = () => {
+    if (isMobile && close) close()
+  }
 
   return (
     <Sidebar  variant="inset">
@@ -124,7 +131,7 @@ export function AppSidebar() {
                   {group.items.map((item) => (
                     <SidebarMenuItem key={item.title}>
                       <SidebarMenuButton asChild>
-                        <Link href={item.url}>
+                        <Link href={item.url} onClick={handleNavClick}>
                           <item.icon />
                           <span>{item.title}</span>
                         </Link>

@@ -7,14 +7,18 @@ import { useState } from "react"
 import { UserCog } from "lucide-react"
 import { updateUserSettings } from "./actions"
 import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
 
 export default function SettingsPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [isPending, setIsPending] = useState(false)
 
   const handleSave = async () => {
+    setIsPending(true)
     const result = await updateUserSettings({ name, email, password })
+    setIsPending(false)
     if (result.success) {
       toast.success("Settings updated successfully!")
     } else {
@@ -58,7 +62,10 @@ export default function SettingsPage() {
               value={password}
               onChange={e => setPassword(e.target.value)}
             />
-            <Button className="w-full" onClick={handleSave}>Save Changes</Button>
+            <Button className="w-full" onClick={handleSave} disabled={isPending}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Save Changes
+            </Button>
           </CardContent>
         </Card>
       </div>
