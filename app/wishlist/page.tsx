@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ShoppingCart, Heart, Star, Trash2, Share2, Grid3X3, List, LogIn, UserPlus, Info } from "lucide-react"
+import { ShoppingCart, Heart, Star, Trash2, Share2, Grid3X3, List, LogIn, UserPlus, Info, Loader2 } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { getWishlistItems } from "./actions"
@@ -33,12 +33,15 @@ export default function WishlistPage() {
   const [sortBy, setSortBy] = useState("dateAdded")
   const [isPending, startTransition] = useTransition();
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchWishlist() {
+      setLoading(true)
       const items = await getWishlistItems()
       setWishlistItems(items)
       setIsLoggedIn(Array.isArray(items))
+      setLoading(false)
     }
     fetchWishlist()
   }, [])
@@ -76,6 +79,17 @@ export default function WishlistPage() {
         return 0
     }
   })
+
+  if (loading) {
+    return (
+      <SidebarInset>
+        <div className="flex-1 flex items-center justify-center p-8">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mr-3" />
+          <span className="text-lg text-muted-foreground">Loading your wishlist...</span>
+        </div>
+      </SidebarInset>
+    )
+  }
 
   if (!isLoggedIn) {
     return (

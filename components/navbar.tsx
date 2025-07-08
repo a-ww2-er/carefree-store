@@ -15,6 +15,7 @@ import { AVATAR_IMAGES } from "@/lib/constants/images"
 import { useCartStore } from '@/store/cart';
 import data from '@/data.json';
 import { useRouter } from 'next/navigation';
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface Product {
   asin: string;
@@ -47,6 +48,7 @@ export function Navbar() {
   const [showDropdown, setShowDropdown] = useState(false);
   const router = useRouter();
   const allProducts: Product[] = Object.values(data).flat();
+  const isMobile = useIsMobile()
 
   // Add scroll event listener to detect when to add shadow
   useEffect(() => {
@@ -101,12 +103,12 @@ export function Navbar() {
             />
           </form>
           {showDropdown && searchResults.length > 0 && (
-            <div className="absolute z-50 mt-2 w-full bg-white border rounded shadow-lg max-h-64 overflow-auto">
+            <div className="absolute z-50 mt-2 w-full bg-background border rounded shadow-lg max-h-64 overflow-auto">
               {searchResults.map((product) => (
                 <Link
                   key={product.asin}
                   href={`/products/${product.asin}`}
-                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100"
+                  className="flex items-center gap-2 px-3 py-2 hover:bg-accent"
                   onClick={() => setShowDropdown(false)}
                 >
                   <img src={product.product_image || '/placeholder.svg'} alt={product.product_title} className="w-8 h-8 object-cover rounded" />
@@ -116,7 +118,7 @@ export function Navbar() {
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center ml-2 gap-2">
           <ThemeToggle />
           {/* Show login/signup buttons when sidebar is collapsed and user is not logged in */}
           {state === "collapsed" && !isLoggedIn && (
@@ -137,11 +139,11 @@ export function Navbar() {
           )}
 
           {/* Always show these buttons */}
-          <Button size="icon" variant="outline" asChild>
+       {!isMobile &&  <Button size="icon" variant="outline" asChild>
             <Link href="/wishlist">
               <Heart className="h-4 w-4" />
             </Link>
-          </Button>
+          </Button>}
           <Button size="icon" variant="outline" asChild className="relative">
             <Link href="/cart">
               <ShoppingCart className="h-4 w-4" />
@@ -172,11 +174,11 @@ export function Navbar() {
                   <div className="font-semibold text-sm">{user?.name}</div>
                   <div className="text-xs text-muted-foreground">{user?.email}</div>
                 </div>
-                <DropdownMenuItem asChild>
+                {/* <DropdownMenuItem asChild>
                   <Link href="/profile">Profile</Link>
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
                 <DropdownMenuItem asChild>
-                  <Link href="/orders">Orders</Link>
+                  <Link href="/order-history">Orders</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/settings">Settings</Link>

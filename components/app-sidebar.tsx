@@ -41,7 +41,7 @@ const publicNavigation = [
       { title: "Home", url: "/", icon: Home },
       { title: "Products", url: "/products", icon: ShoppingBag },
       { title: "Categories", url: "/categories", icon: Package },
-      { title: "Search", url: "/search", icon: Search },
+      // { title: "Search", url: "/search", icon: Search },
       { title: "Orders", url: "/order-history", icon: Truck },
     ],
   },
@@ -102,7 +102,7 @@ export function AppSidebar() {
                 </AvatarFallback>
               )}
             </Avatar>
-            {!isMobile && (
+            {/* {!isMobile && ( */}
               <>
                 <div className="font-semibold text-base">{user?.name}</div>
                 <div className="text-xs text-muted-foreground">{user?.email}</div>
@@ -110,7 +110,7 @@ export function AppSidebar() {
                   Sign out
                 </Button>
               </>
-            )}
+            {/* )} */}
           </div>
         )}
         {/* Show navigation groups, but hide Account group if logged in */}
